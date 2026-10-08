@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>AI多智能体平台系统 - 登录</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js">
+    </script>
+    <script src="/static/js/jquery-3.1.1.min.js">
+    </script>
+    <style>
+        /* ===== 全局重置 & 字体 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #070b1a;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ===== 背景图片 + 多层叠加 ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            background:
+                /* 深色渐变叠加，增强文字可读性 */
+                radial-gradient(ellipse at 20% 50%, rgba(10, 20, 60, 0.70) 0%, rgba(2, 6, 18, 0.92) 100%),
+                /* 背景图片：深邃星空 */
+                url('https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1920&q=80') center / cover no-repeat;
+            filter: saturate(1.2) brightness(0.75);
+        }
+
+        /* ===== 装饰性光晕（科技感） ===== */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -20%;
+            right: -5%;
+            width: 60%;
+            height: 80%;
+            background: radial-gradient(circle at 70% 50%, rgba(0, 180, 255, 0.10) 0%, transparent 65%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 左下角辅助光晕 */
+        .glow-bottom-left {
+            position: fixed;
+            bottom: -10%;
+            left: -5%;
+            width: 50%;
+            height: 60%;
+            background: radial-gradient(circle at 30% 70%, rgba(124, 58, 237, 0.08) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ===== Vue 根容器 ===== */
+        #app {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* ===== 登录卡片 ===== */
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 48px 40px 44px;
+            background: rgba(12, 18, 40, 0.60);
+            backdrop-filter: blur(24px) saturate(1.6);
+            -webkit-backdrop-filter: blur(24px) saturate(1.6);
+            border-radius: 32px;
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            box-shadow:
+                0 40px 80px -20px rgba(0, 0, 0, 0.8),
+                0 0 40px -8px rgba(0, 180, 255, 0.06),
+                0 0 0 1px rgba(0, 180, 255, 0.04) inset;
+            animation: cardFadeIn 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            transform: translateY(24px);
+            opacity: 0;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 卡片顶部发光线条 */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 20%;
+            right: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 180, 255, 0.6), rgba(124, 58, 237, 0.6), transparent);
+            border-radius: 100%;
+            filter: blur(1px);
+        }
+
+        .login-card:hover {
+            box-shadow:
+                0 50px 100px -20px rgba(0, 0, 0, 0.9),
+                0 0 60px -12px rgba(0, 180, 255, 0.10),
+                0 0 0 1px rgba(0, 180, 255, 0.08) inset;
+        }
+
+        @keyframes cardFadeIn {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* ===== 卡片头部 ===== */
+        .login-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .login-header .logo-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #00b4ff, #7c3aed);
+            color: #fff;
+            font-size: 32px;
+            margin-bottom: 18px;
+            box-shadow: 0 12px 40px -8px rgba(0, 180, 255, 0.35);
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .login-header .logo-icon:hover {
+            transform: scale(1.04);
+        }
+
+        /* 图标光晕 */
+        .login-header .logo-icon::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(0, 180, 255, 0.2), rgba(124, 58, 237, 0.2));
+            filter: blur(12px);
+            z-index: -1;
+        }
+
+        .login-header h1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(135deg, #f0f4ff, #b8d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-header .subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.50);
+            font-weight: 400;
+            letter-spacing: 0.4px;
+        }
+
+        /* ===== 表单区域 ===== */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* 输入框容器 */
+        .input-group {
+            position: relative;
+        }
+
+        .input-group .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.20);
+            font-size: 18px;
+            pointer-events: none;
+            transition: color 0.3s ease;
+        }
+
+        /* 输入框样式 */
+        .login-form input[type="text"] {
+            width: 100%;
+            padding: 16px 18px 16px 48px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            font-size: 15px;
+            color: #ffffff;
+            outline: none;
+            transition: all 0.35s ease;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+
+        .login-form input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+            font-weight: 300;
+        }
+
+        .login-form input[type="text"]:focus {
+            border-color: rgba(0, 180, 255, 0.50);
+            background: rgba(255, 255, 255, 0.07);
+            box-shadow: 0 0 0 4px rgba(0, 180, 255, 0.06), 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-form input[type="text"]:focus+.input-icon,
+        .login-form input[type="text"]:focus~.input-icon {
+            color: rgba(0, 180, 255, 0.70);
+        }
+
+        .login-form input[type="text"]:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px rgba(12, 18, 40, 0.9) inset !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        /* ===== 按钮组 ===== */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+            padding: 14px 0;
+            border: none;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ===== 发送验证码按钮（次要） ===== */
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        /* ===== 登录按钮（主要） ===== */
+        .btn-primary {
+            background: linear-gradient(135deg, #00b4ff, #7c3aed);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 8px 32px -6px rgba(0, 180, 255, 0.35);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent 60%);
+            pointer-events: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 48px -8px rgba(0, 180, 255, 0.50);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 24px -4px rgba(0, 180, 255, 0.30);
+        }
+
+        /* ===== 底部版权 ===== */
+        .login-footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.18);
+            letter-spacing: 0.6px;
+            font-weight: 300;
+        }
+
+        .login-footer span {
+            color: rgba(255, 255, 255, 0.12);
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 520px) {
+            .login-card {
+                padding: 36px 24px 32px;
+                border-radius: 24px;
+            }
+
+            .login-header .logo-icon {
+                width: 54px;
+                height: 54px;
+                font-size: 26px;
+                border-radius: 16px;
+            }
+
+            .login-header h1 {
+                font-size: 22px;
+            }
+
+            .login-form input[type="text"] {
+                padding: 14px 14px 14px 42px;
+                font-size: 14px;
+            }
+
+            .btn-group .btn {
+                padding: 12px 0;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .login-card {
+                padding: 28px 16px 24px;
+                border-radius: 20px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-group .btn {
+                padding: 13px 0;
+            }
+        }
+
+        /* ===== 加载过渡 ===== */
+        .login-card {
+            animation: cardFadeIn 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+
+        /* ===== 输入框自动填充时保持样式 ===== */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px rgba(12, 18, 40, 0.85) inset !important;
+            -webkit-text-fill-color: #ffffff !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        /* ===== 额外装饰：左下光晕（纯CSS） ===== */
+        .deco-glow {
+            position: fixed;
+            bottom: -5%;
+            left: -3%;
+            width: 40%;
+            height: 50%;
+            background: radial-gradient(circle at 30% 70%, rgba(124, 58, 237, 0.06), transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 装饰光晕 -->
+    <div class="deco-glow"></div>
+
+    <div id="app">
+        <div class="login-card">
+
+            <!-- 卡片头部 -->
+            <div class="login-header">
+                <div class="logo-icon">✦</div>
+                <h1>AI 旅游规划智能平台</h1>
+                <p class="subtitle">登录以访问您的智能体工作空间</p>
+            </div>
+
+            <!-- 表单区域（所有原有元素完全保留） -->
+            <div class="login-form">
+                <!-- 邮箱输入框 -->
+                <div class="input-group">
+                    <input type="text" placeholder="请输入邮箱" v-model="email" />
+                    <span class="input-icon">✉</span>
+                </div>
+
+                <!-- 验证码输入框 -->
+                <div class="input-group">
+                    <input type="text" placeholder="请输入验证码" v-model="code" />
+                    <span class="input-icon">✦</span>
+                </div>
+
+                <!-- 按钮组 -->
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" @click="sendCode">发送验证码</button>
+                    <button type="button" class="btn btn-primary" @click="login">登录</button>
+                </div>
+            </div>
+
+            <!-- 底部信息 -->
+            <div class="login-footer">
+                <span>✦ 安全加密 · 智能驱动 ✦</span>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            data: {
+                email: "",
+                code: ""
+            },
+            mounted: function() {
+                // 生命周期函数，加载完页面执行的函数
+                // 获取用户登录的信息
+                var userId = localStorage.getItem("userId");
+                if (userId) {
+                    window.location.href = "/static/chat.html";
+                }
+            },
+            methods: {
+                sendCode: function() {
+                    $.ajax({
+                        url: "/sendCode", // 接口地址
+                        data: { "email": this.email },
+                        success: function(rs) { // 回调函数
+                            console.log(rs);
+                            if (rs.code === 200) {
+                                alert(rs.msg);
+                            } else {
+                                alert(rs.msg);
+                            }
+                        }
+                    });
+                },
+                login: function() {
+                    $.ajax({
+                        url: "/login", // 接口地址
+                        data: { "email": this.email, "code": this.code },
+                        success: function(rs) { // 回调函数
+                            console.log(rs);
+                            if (rs.code === 200) {
+                                alert(rs.msg);
+                                // 本地存储用户
+                                localStorage.setItem("userId", rs.user_id);
+                                // 回到登录页面
+                                window.location.href = "/static/login.html";
+                            } else {
+                                alert(rs.msg);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

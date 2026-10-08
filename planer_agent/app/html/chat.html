@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能聊天助手</title>
+    <!-- Vue2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+    <!-- Markdown解析库 marked CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, "Microsoft YaHei", sans-serif;
+        }
+        body {
+            height: 100vh;
+            overflow: hidden;
+            background: #eef1f8;
+        }
+        /* 全局容器 - 上下整体布局 */
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* 顶部导航栏 */
+        .chat-header {
+            height: 68px;
+            background: linear-gradient(90deg,#17152d,#27214b);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 12px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 20px rgba(23,21,45,0.25);
+            position: relative;
+            z-index: 10;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg,#8b5cf6,#22d3ee);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 0 20px rgba(139,92,246,0.45);
+        }
+        .system-name {
+            font-size: 19px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+        /* 主体区域：左侧历史 + 中间聊天 */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        /* 左侧聊天历史侧边栏 */
+        .history-sidebar {
+            width: 270px;
+            background: linear-gradient(180deg,#17152d,#201c3b);
+            padding: 22px 16px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            box-shadow: 5px 0 20px rgba(30,25,60,0.1);
+        }
+        .sidebar-title {
+            font-size: 12px;
+            color: #8c88ab;
+            margin-bottom: 16px;
+            padding-left: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+        }
+        .history-item {
+            padding: 13px 14px;
+            border-radius: 10px;
+            margin-bottom: 7px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #c7c5d8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.25s;
+            border: 1px solid transparent;
+        }
+        .history-item:hover {
+            background: linear-gradient(90deg,rgba(139,92,246,0.25),rgba(34,211,238,0.08));
+            color: #ffffff;
+            border-color: rgba(139,92,246,0.35);
+            transform: translateX(3px);
+        }
+        /* 中间聊天消息区域 */
+        .chat-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20% 10%,rgba(139,92,246,0.08),transparent 25%),
+                radial-gradient(circle at 90% 80%,rgba(34,211,238,0.08),transparent 25%),
+                #f3f5fa;
+        }
+        .message-wrap {
+            flex: 1;
+            padding: 32px 55px;
+            overflow-y: auto;
+        }
+        /* 单条消息容器 */
+        .message-item {
+            display: flex;
+            margin-bottom: 28px;
+            gap: 13px;
+            animation: showMessage 0.25s ease;
+        }
+        @keyframes showMessage {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* 用户消息 靠右 */
+        .message-user {
+            flex-direction: row-reverse;
+        }
+        /* AI消息 靠左 */
+        .message-ai {
+            flex-direction: row;
+        }
+        /* 头像通用 */
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+            font-weight: 600;
+        }
+        .avatar-user {
+            background: linear-gradient(135deg,#334155,#64748b);
+            box-shadow: 0 5px 15px rgba(51,65,85,0.2);
+        }
+        .avatar-ai {
+            background: linear-gradient(135deg,#8b5cf6,#6366f1);
+            box-shadow: 0 5px 18px rgba(139,92,246,0.3);
+        }
+        /* 气泡容器 */
+        .bubble-box {
+            max-width: 68%;
+        }
+        /* 消息时间 */
+        .msg-time {
+            font-size: 11px;
+            color: #a5a9b8;
+            margin-bottom: 6px;
+        }
+        .message-user .msg-time {
+            text-align: right;
+        }
+        /* 聊天气泡样式 */
+        .bubble {
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.7;
+            font-size: 15px;
+            word-break: break-word;
+        }
+        .bubble-user {
+            background: linear-gradient(135deg,#7c3aed,#6366f1);
+            color: #ffffff;
+            border-top-right-radius: 4px;
+            box-shadow: 0 8px 22px rgba(99,102,241,0.22);
+        }
+        .bubble-ai {
+            background: rgba(255,255,255,0.92);
+            color: #2a2d3a;
+            border: 1px solid rgba(220,222,235,0.9);
+            border-top-left-radius: 4px;
+            box-shadow: 0 8px 25px rgba(49,46,85,0.08);
+            backdrop-filter: blur(10px);
+        }
+        /* Markdown 内容样式 */
+        .markdown-body h1, h2, h3, h4 {
+            margin: 10px 0;
+        }
+        .markdown-body p {
+            margin: 8px 0;
+        }
+        .markdown-body pre {
+            background: #1d1a31;
+            color: #e9e8f2;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        .markdown-body code {
+            background: #ece9f9;
+            color: #6d28d9;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+        .bubble-user code {
+            background: rgba(255,255,255,0.16);
+            color: #ffffff;
+        }
+        .markdown-body ul, ol {
+            padding-left: 22px;
+            margin: 8px 0;
+        }
+        /* 图片样式 */
+        .chat-img {
+            max-width: 100%;
+            border-radius: 12px;
+            cursor: zoom-in;
+            margin: 8px 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        /* 视频样式 */
+        .chat-video {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 8px 0;
+        }
+        /* 底部输入区域 */
+        .input-footer {
+            padding: 18px 45px 22px;
+            background: transparent;
+            flex-shrink: 0;
+        }
+        .input-box {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(218,220,232,0.9);
+            border-radius: 18px;
+            box-shadow: 0 12px 35px rgba(45,40,90,0.12);
+            backdrop-filter: blur(12px);
+        }
+        #user-input {
+            flex: 1;
+            min-height: 78px;
+            max-height: 200px;
+            padding: 12px 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            background: transparent;
+            color: #252839;
+            line-height: 1.6;
+        }
+        #user-input::placeholder {
+            color: #a4a7b7;
+        }
+        .send-btn {
+            width: 90px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg,#7c3aed,#6366f1);
+            color: #fff;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 6px 16px rgba(99,102,241,0.3);
+        }
+        .send-btn:hover {
+            background: linear-gradient(135deg,#8b5cf6,#4f46e5);
+            transform: translateY(-2px);
+            box-shadow: 0 9px 22px rgba(99,102,241,0.38);
+        }
+        .send-btn:active {
+            transform: translateY(0);
+        }
+        /* 顶部退出按钮单独样式 */
+        .chat-header .send-btn {
+            width: 92px;
+            height: 38px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: none;
+            color: #e8e7ef;
+        }
+        .chat-header .send-btn:hover {
+            background: rgba(139,92,246,0.25);
+            border-color: rgba(139,92,246,0.6);
+            transform: none;
+        }
+        /* 图片放大弹窗 */
+        .img-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(12,10,25,0.94);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+        .modal-close {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            color: #ffffff;
+            font-size: 40px;
+            cursor: pointer;
+        }
+        .modal-img {
+            max-width: 90%;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #aaa6c2;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #817b9e;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        @media(max-width:768px) {
+            .history-sidebar {
+                display: none;
+            }
+            .message-wrap {
+                padding: 22px 16px;
+            }
+            .input-footer {
+                padding: 12px 14px 16px;
+            }
+            .bubble-box {
+                max-width: 82%;
+            }
+            .chat-header {
+                padding: 0 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航 -->
+        <div class="chat-header">
+            <div class="logo-icon">AI</div>
+            <div class="system-name">智能AI聊天助手</div>
+            <div style="position: fixed;right: 20px">
+                <button class="send-btn" type="button" @click="exit">退出登录</button>
+            </div>
+        </div>
+        <!-- 主体：侧边历史 + 聊天区 -->
+        <div class="chat-main">
+            <!-- 左侧聊天历史 -->
+            <div class="history-sidebar">
+                <div class="sidebar-title">对话历史</div>
+                <div class="history-item" v-for="(item, idx) in historyList" :key="idx">
+                    {{ item.title }}
+                </div>
+            </div>
+            <!-- 中间聊天消息区域 -->
+            <div class="chat-content">
+                <div class="message-wrap" ref="msgScroll">
+                    <!-- 循环渲染所有消息 -->
+                    <div
+                        class="message-item"
+                        :class="msg.role === 'user' ? 'message-user' : 'message-ai'"
+                        v-for="(msg, index) in chatList"
+                        :key="index"
+                    >
+                        <!-- 头像 -->
+                        <div class="avatar" :class="msg.role === 'user' ? 'avatar-user' : 'avatar-ai'">
+                            {{ msg.role === 'user' ? '我' : 'AI' }}
+                        </div>
+                        <!-- 消息气泡区域 -->
+                        <div class="bubble-box">
+                            <div class="msg-time">{{ msg.time }}</div>
+                            <!-- Markdown渲染内容 -->
+                            <div
+                                class="bubble markdown-body"
+                                :class="msg.role === 'user' ? 'bubble-user' : 'bubble-ai'"
+                                v-html="renderMarkdown(msg.content)"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 底部输入框 -->
+                <div class="input-footer">
+                    <div class="input-box">
+                        <textarea
+                            id="user-input"
+                            v-model="inputMsg"
+                            placeholder="请输入消息，Enter发送，Shift+Enter换行"
+                            @keydown="handleKeyDown"
+                        ></textarea>
+                        <button class="send-btn" @click="sendMessage">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 图片放大弹窗 -->
+        <div v-if="showImgModal" class="img-modal" @click="closeImgModal">
+            <span class="modal-close">×</span>
+            <img class="modal-img" :src="modalImgSrc" alt="大图">
+        </div>
+    </div>
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    // 输入框内容
+                    inputMsg: "",
+                    // 聊天消息列表，内置4类测试数据
+                    chatList: [
+                        // 1.普通文本消息
+                        {
+                            role: "user",
+                            content: "你好，介绍一下自己",
+                            time: this.getNowTime()
+                        },
+                        {
+                            role: "ai",
+                            content: "你好！我是AI旅游规划助手。",
+                            time: this.getNowTime()
+                        },
+                    ],
+                    // 左侧对话历史列表
+                    historyList: [
+                        { title: "旅游规划对话" },
+                        { title: "天气查询对话" }
+                    ],
+                    // 图片弹窗控制
+                    showImgModal: false,
+                    modalImgSrc: "",
+                    // SSE实例缓存
+                    sseInstance: null,
+                    userId: Number(localStorage.getItem("userId")),//用户id
+                }
+            },
+            mounted() {
+                //获取用户登录的信息
+                const userId = localStorage.getItem("userId");
+                if (!userId){
+                    //跳转到聊天页面,第一个斜杠代表本地地址
+                    window.location.href="/static/chat.html";
+                }
+                // 页面加载自动滚动到底部
+                this.scrollToBottom();
+            },
+            methods: {
+                exit(){
+                  localStorage.removeItem("userId");
+                  window.location.href="/static/login.html";
+                },
+                // 获取当前格式化时间
+                getNowTime() {
+                    const date = new Date();
+                    const h = String(date.getHours()).padStart(2, '0');
+                    const m = String(date.getMinutes()).padStart(2, '0');
+                    const s = String(date.getSeconds()).padStart(2, '0');
+                    return `${h}:${m}:${s}`;
+                },
+                // Markdown解析 + 替换图片标签，增加点击放大class
+                renderMarkdown(mdText) {
+                    if (!mdText) return "";
+                    // marked基础转换
+                    let html = marked.parse(mdText);
+                    // 匹配所有图片，添加chat-img类用于点击放大
+                    html = html.replace(/<img/g, '<img class="chat-img"');
+                    return html;
+                },
+                // 滚动聊天区到底部
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const scrollDom = this.$refs.msgScroll;
+                        if (scrollDom) scrollDom.scrollTop = scrollDom.scrollHeight;
+                    })
+                },
+                // 键盘监听：Enter发送，Shift+Enter换行
+                handleKeyDown(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                },
+                // 发送消息（保留原有SSE流式逻辑）
+                sendMessage() {
+                    const msg = this.inputMsg.trim();
+                    if (!msg) return;
+                    // 1.添加用户消息
+                    const userMsg = {
+                        role: "user",
+                        content: msg,
+                        time: this.getNowTime()
+                    }
+                    this.chatList.push(userMsg);
+                    // 2.创建空AI消息，用于流式追加
+                    const aiMsg = {
+                        role: "ai",
+                        content: "正在思考，请稍后....",
+                        time: this.getNowTime()
+                    }
+                    this.chatList.push(aiMsg);
+                    // 清空输入框
+                    this.inputMsg = "";
+                    // 滚动到底部
+                    this.scrollToBottom();
+                    // SSE流式请求（和你原有逻辑保持一致）
+                    const params = `question=${encodeURIComponent(msg)}&user_id=${this.userId}`;
+                    // 关闭上一次未完成的SSE连接
+                    if (this.sseInstance) this.sseInstance.close();
+                    this.sseInstance = new EventSource('/chat?' + params);
+                    this.sseInstance.onmessage = (e) => {
+                        console.log("原始数据：", e.data);
+                        // 按换行符分割成数组，过滤掉空行
+                        const lines = e.data.split('\n').filter(line => line.trim() !== '');
+                        for (let line of lines) {
+                            try {
+                                const data = JSON.parse(line);
+                                if (data.done) {
+                                    // 流结束
+                                    this.sseInstance.close();
+                                    this.sseInstance = null;
+                                    // 处理异常情况的流式显示
+                                    if (data.error) {
+                                        aiMsg.content += data.data;
+                                    }
+                                } else {
+                                    //判断是否有提示信息在ai内容，如果有的话删除
+                                    if(aiMsg.content.indexOf("正在思考，请稍后....")>-1){
+                                        aiMsg.content="";
+                                    }
+                                    // 追加内容
+                                    aiMsg.content += data.data;
+                                    this.scrollToBottom();
+                                }
+                            } catch (err) {
+                                console.error("解析单行JSON失败", err, "行内容：", line);
+                            }
+                        }
+                    };
+                    // SSE异常关闭
+                    this.sseInstance.onerror = () => {
+                        this.sseInstance.close();
+                        this.sseInstance = null;
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html>
